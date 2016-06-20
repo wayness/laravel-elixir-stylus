@@ -1,4 +1,8 @@
-var CssTask = require('laravel-elixir/dist/tasks/CssTask').default;
+var gulp    = require('gulp');
+var compile = require('laravel-elixir/tasks/shared/Css');
+var Elixir = require('laravel-elixir');
+
+var config = Elixir.config;
 
 /*
  |----------------------------------------------------------------
@@ -6,37 +10,44 @@ var CssTask = require('laravel-elixir/dist/tasks/CssTask').default;
  |----------------------------------------------------------------
  |
  | This task will compile your Stylus, including minification and
- | and auto-prefixing. Additionally it supports any postStylus
- | plugins that you want to include with your compilation.
+ | and auto-prefixing. Stylus is one of the CSS pre-processors
+ | supported by Elixir, along with the Sass CSS processor.
  |
  */
 
-Elixir.config.css.stylus = {
-    folder: 'stylus',
-    search: '/**/*.styl',
-    plugin: require('gulp-stylus'),
-    pluginOptions: {
-        use: [
-            require('poststylus')(['lost'])
-        ]
-    }
-};
-
+// Add correct configuration for stylus
+config.css.stylus = {
+                        folder: 'stylus',
+                        pluginOptions: {}
+                    };
 
 Elixir.extend('stylus', function(src, output, options) {
-    new CssTask('stylus', getPaths(src, output), options || {});
-});
+    var paths = prepGulpPaths(src, output);
 
+    new Elixir.Task('stylus', function() {
+        return compile({
+            name: 'Stylus',
+            compiler: require('gulp-stylus'),
+            src: paths.src,
+            output: paths.output,
+            task: this,
+            pluginOptions: options || config.css.stylus.pluginOptions
+        });
+    })
+    .watch(paths.src.baseDir + '/**/*.styl')
+    .ignore(paths.output.path);
+});
 
 /**
  * Prep the Gulp src and output paths.
  *
- * @param  {string|array} src
+ * @param  {string|Array} src
  * @param  {string|null}  output
- * @return {object}
+ * @return {GulpPaths}
  */
-var getPaths = function(src, output) {
+var prepGulpPaths = function(src, output) {
     return new Elixir.GulpPaths()
-        .src(src, Elixir.config.get('assets.css.stylus.folder'))
-        .output(output || Elixir.config.get('public.css.outputFolder'), 'app.css');
+        .src(src, config.get('assets.css.stylus.folder'))
+        .output(output || config.get('public.css.outputFolder'), 'app.css');
 };
+
